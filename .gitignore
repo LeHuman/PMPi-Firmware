@@ -1,4 +1,14 @@
 /build*
 /.vscode
 /cpm_modules
+/models
 .DS_Store
+.idea
+_deps
+cmake-*
+*.pdf
+.env
+
+*.bak
+
+/examples

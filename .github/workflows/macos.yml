@@ -1,38 +1,45 @@
-name: MacOS
-
+name: Build on macOS
 on:
+  workflow_dispatch:
   push:
     branches:
-      - master
-      - main
-  pull_request:
-    branches:
-      - master
-      - main
-
-env:
-  CTEST_OUTPUT_ON_FAILURE: 1
-  CPM_SOURCE_CACHE: ${{ github.workspace }}/cpm_modules
+      - 'develop'
+      - 'master'
+      - 'test_workflow'
 
 jobs:
   build:
-    runs-on: macos-latest
-
+    runs-on: macos-12
     steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/cache@v3
-        with:
-          path: "**/cpm_modules"
-          key: ${{ github.workflow }}-cpm-modules-${{ hashFiles('**/CMakeLists.txt', '**/*.cmake') }}
-
-      - name: configure
-        run: cmake -Stest -Bbuild -DCMAKE_BUILD_TYPE=Debug
-
-      - name: build
-        run: cmake --build build -j4
-
-      - name: test
+      - name: Clean workspace
         run: |
+          echo "Cleaning up previous run"
+          rm -rf "${{ github.workspace }}"
+          mkdir -p "${{ github.workspace }}"
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Checkout submodules
+        run: git submodule update --init
+      - name: Install dependencies
+        run: |
+          brew install cmake
+          brew tap ArmMbed/homebrew-formulae
+          brew install arm-none-eabi-gcc
+
+      - name: Build Project
+        # bash required otherwise this mysteriously (no error) fails at "Generating cyw43_bus_pio_spi.pio.h"
+        shell: bash
+        run: |
+          mkdir build
           cd build
-          ctest --build-config Debug
+          cmake .. -G "Unix Makefiles" -DPICO_SDK_TESTS_ENABLED=1 -DCMAKE_BUILD_TYPE=Debug -DPICO_BOARD=pico_w
+          cmake --build .
+
+      - name: Build Native
+        # bash required otherwise this mysteriously (no error) fails at "Generating cyw43_bus_pio_spi.pio.h"
+        shell: bash
+        run: |
+          mkdir build_native
+          cd build_native
+          cmake .. -G "Unix Makefiles" -DPICO_SDK_TESTS_ENABLED=1 -DCMAKE_BUILD_TYPE=Debug -DPICO_PLATFORM=host
+          cmake --build .
