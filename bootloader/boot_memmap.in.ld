@@ -21,8 +21,6 @@
     __stack (== StackTop)
 */
 
-/* TODO: Combine linker scripts */
-/* TODO: External parameters for offsets and lengths */
 MEMORY
 {
     FLASH(rx) : ORIGIN = @FLASH_BOOTLOADER_ORIGIN@, LENGTH = @FLASH_BOOTLOADER_LENGTH@
@@ -44,7 +42,6 @@ SECTIONS
         __flash_binary_start = .;
     } > FLASH
 
-
     .boot2 : {
         __boot2_start__ = .;
         KEEP (*(.boot2))
@@ -53,7 +50,6 @@ SECTIONS
 
     ASSERT(__boot2_end__ - __boot2_start__ == 256,
         "ERROR: Pico second stage bootloader must be 256 bytes in size")
-
 
     /* The second stage will always enter the image at the start of .text.
        The debugger will use the ELF entry point, which is the _entry_point

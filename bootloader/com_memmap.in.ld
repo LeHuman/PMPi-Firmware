@@ -21,12 +21,10 @@
     __stack (== StackTop)
 */
 
-/* TODO: Combine linker scripts */
-/* TODO: External parameters for offsets and lengths */
 MEMORY
 {
     FLASH_BL(rx) : ORIGIN = @FLASH_BOOTLOADER_ORIGIN@, LENGTH = @FLASH_BOOTLOADER_LENGTH@
-    FLASH_HDR(rx) : ORIGIN = @FLASH_HEADER_ORIGIN@, LENGTH = @FLASH_HEADER_LENGTH@
+    FLASH_HDR(r) : ORIGIN = @FLASH_HEADER_ORIGIN@, LENGTH = @FLASH_HEADER_LENGTH@
     FLASH(rx) : ORIGIN = @FLASH_MAIN_ORIGIN@, LENGTH = @FLASH_MAIN_LENGTH@
     RAM(rwx) : ORIGIN =  0x20000000, LENGTH = 256k
     SCRATCH_X(rwx) : ORIGIN = 0x20040000, LENGTH = 4k
@@ -42,12 +40,13 @@ SECTIONS
        in the Raspberry Pi Pico SDK
     */
 
+    .flash_begin : {
+        __flash_binary_start = .;
+    } > FLASH
+
     /* Insert boot3, which is the combined boot2 + boot3 */
     .boot3 : {
-        /* KEEP (*(.boot3)) */
-        LONG(0xdeadbeef)
-        /* LONG(0)
-        LONG(0xdeadbeef) */
+        KEEP (*(.boot3))
     } > FLASH_BL
 
     /*
@@ -55,16 +54,8 @@ SECTIONS
      * The contents will get replaced post-build
      */
     .flash_header : {
-        /* KEEP (*(.flash_header)) */
-        LONG(0xdeadbeef)
-        /* LONG(0)
-        LONG(0xdeadbeef) */
+        LONG(0xdeaddead)
     } > FLASH_HDR
-
-    
-    .flash_begin : {
-        __flash_binary_start = .;
-    } > FLASH
 
 
     /*

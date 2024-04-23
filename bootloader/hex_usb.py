@@ -23,6 +23,13 @@ def serial_output(port: str, hex_file: str):
         timeout=None
     )
 
+    ser.write(b'DEBUG')
+
+    time.sleep(3)
+    
+    ser.close()
+    ser.open()
+
     # Send some hexlines with bad checksums to get into known bootloader state
     for _ in range(10):
         ser.write(b':020000041000EB\r')
