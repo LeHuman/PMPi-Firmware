@@ -23,6 +23,8 @@ int main() {
     timer_hw->dbgpause = 0;
 #endif
 
+    // TODO: Ensure baseline program is in flash and is okay to run
+
     if (!bootloader_should_run()) {
         bootloader_exit();
     }
@@ -30,7 +32,7 @@ int main() {
     bootloader_init();
 
     if (!bootloader_load_program()) {
-        // TODO: fallback program
+        // TODO: Fallback program
         // Soft reset into bootloader on fail
         bootloader_deinit();
         bootloader_soft_reset();

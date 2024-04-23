@@ -147,7 +147,6 @@ int acquireLine() {
 
     // Perform a checksum
     valid = checkLine(buffer, load_buffer);
-    // valid = 0; // FIXME: checksum not working?
 
     // If passed, parse the line. Else return 0.
     if (valid == 0) {

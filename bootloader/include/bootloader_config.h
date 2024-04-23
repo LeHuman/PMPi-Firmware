@@ -21,10 +21,10 @@
 
 // Application program offset in flash
 // This should agree with the linker script for the application program.
-#ifndef BOOTLOADER_FLASH_SIZE
-    #define BOOTLOADER_FLASH_SIZE (4096 * 9)
-    #define MAIN_APP_FLASH_OFFSET BOOTLOADER_FLASH_SIZE
-#endif
+// #ifndef BOOTLOADER_FLASH_SIZE
+//     #define FLASH_BOOTLOADER_ORIGIN
+//     #define FLASH_MAIN_ORIGIN
+// #endif
 
 #define BOOT_INPUT_HEX
 

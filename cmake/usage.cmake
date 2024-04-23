@@ -24,12 +24,26 @@ function(get_file_usage var filename max_sz)
     duplicate_char("=" "${ticks}" flash_bar)
     math(EXPR ticks "10-${ticks}")
     duplicate_char(" " "${ticks}" flash_bar_empty)
-    math(EXPR max_sz "${max_sz}/4096")
+    math(EXPR max_sz "${max_sz}/1024")
 
     set(${var} "(${max_sz}k) : [${flash_bar}${flash_bar_empty}] ${int}.${float}%" PARENT_SCOPE)
 endfunction()
 
 if(DEFINED USAGE_PATH_TO_FILE AND EXISTS "${USAGE_PATH_TO_FILE}")
     get_file_usage(__usage_bar ${USAGE_PATH_TO_FILE} ${USAGE_FILE_MAX_SIZE})
-    execute_process(COMMAND ${CMAKE_COMMAND} -E echo "\n${USAGE_PREFIX}${__usage_bar}\n")
+    execute_process(COMMAND ${CMAKE_COMMAND} -E echo "\n${USAGE_PREFIX} ${__usage_bar}\n")
 endif(DEFINED USAGE_PATH_TO_FILE AND EXISTS "${USAGE_PATH_TO_FILE}")
+
+function(usage_print usage_project_name usage_file_path usage_max_size usage_output_prefix)
+    add_custom_target("USAGE_PRINT_${usage_project_name}"
+        COMMAND ${CMAKE_COMMAND} 
+            -DTARGET_NAME=${usage_project_name}
+            # -DTARGET_PATH=${CMAKE_CURRENT_SOURCE_DIR}
+            -DUSAGE_PATH_TO_FILE=${usage_file_path}
+            -DUSAGE_FILE_MAX_SIZE=${usage_max_size}
+            -DUSAGE_PREFIX=${usage_output_prefix}
+            -P ${CMAKE_SOURCE_DIR}/cmake/usage.cmake
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+    add_dependencies(${usage_project_name} "USAGE_PRINT_${usage_project_name}")
+endfunction()

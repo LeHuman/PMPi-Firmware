@@ -39,14 +39,14 @@ bool bootloader_load_program() {
         switch (HEX.type) {
             case HEX_Data:
                 if (new_addr) {
-                    flash_new_address(((msb_addr << 16) | HEX.address) - XIP_BASE);
+                    flash_new_address(((msb_addr << 16) | HEX.address));
                     new_addr = false;
                 }
                 flash_intake(HEX.data, HEX.count);
                 continue;
             case HEX_EndOfFile:
                 if (new_addr) {
-                    flash_new_address(((msb_addr << 16) | HEX.address) - XIP_BASE);
+                    flash_new_address(((msb_addr << 16) | HEX.address));
                     new_addr = false;
                 }
                 flash_finalize();
@@ -79,7 +79,7 @@ void bootloader_exit() {
         "msr msp, r0\n"
         "bx r1\n"
         :
-        : [start] "r"(XIP_BASE + MAIN_APP_FLASH_OFFSET), [vtable] "X"(PPB_BASE + M0PLUS_VTOR_OFFSET)
+        : [start] "r"(FLASH_MAIN_ORIGIN), [vtable] "X"(PPB_BASE + M0PLUS_VTOR_OFFSET)
         :);
 }
 
@@ -114,8 +114,10 @@ void bootloader_soft_reset() {
 }
 
 bool bootloader_should_run() {
-    static uint8_t *flash_target_contents = (uint8_t *)(XIP_BASE + MAIN_APP_FLASH_OFFSET + 265);
-    uint8_t invalid_program = (flash_target_contents[0] != 0xF2) || (flash_target_contents[1] != 0xEB) || (flash_target_contents[2] != 0x88) || (flash_target_contents[3] != 0x71);
+    // https://github.com/raspberrypi/pico-sdk/blob/6a7db34ff63345a7badec79ebea3aaef1712f374/src/rp2_common/pico_standard_link/crt0.S#L167
+    static uint8_t *flash_target_contents = (uint8_t *)(FLASH_MAIN_ORIGIN + 212);
+    // https://github.com/raspberrypi/pico-sdk/blob/6a7db34ff63345a7badec79ebea3aaef1712f374/src/common/pico_binary_info/include/pico/binary_info/defs.h#L40
+    uint8_t invalid_program = *((uint32_t *)flash_target_contents) != 0x7188ebf2;
 
     if (watchdog_hw->scratch[0] || invalid_program) {
         // Reset WD scratch on soft-reset into bootloader

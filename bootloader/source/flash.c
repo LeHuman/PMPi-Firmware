@@ -100,6 +100,8 @@ void flash_intake(unsigned char *src, size_t sz) {
 }
 
 void flash_new_address(uint32_t address) {
+    address -= XIP_BASE;
+
     // Flash remaining data from flash buffer to sector
     if (flashdex) {
         // IMPROVE: better handle for overflow in the case of switching to a new address
@@ -149,7 +151,7 @@ void flash_finalize() {
 
     // We program the first page LAST, since we use it to figure out if there's
     // a valid program to vector into.
-    flash_range_program(MAIN_APP_FLASH_OFFSET, first_page_buffer, PAGE_SIZE);
+    flash_range_program(FLASH_MAIN_ORIGIN - XIP_BASE, first_page_buffer, PAGE_SIZE);
     // TODO: use a crc header instead of static values
 }
 
