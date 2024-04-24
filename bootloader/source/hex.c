@@ -4,9 +4,9 @@
  * @brief Source file for the HEX input scheme
  * @version 0.1
  * @date 2024-04-06
- * 
+ *
  * @copyright Copyright (c) 2024
- * 
+ *
  */
 
 #include "hex.h"
@@ -99,6 +99,9 @@ void transformLine(volatile unsigned char *buf) {
 // Performs a checksum on the received hex line
 uint32_t checkLine(volatile unsigned char *src, volatile unsigned char *dst) {
 
+    // Enable the sniffer
+    dma_sniffer_enable(dma_checksum, 0x0F, true);
+
     // Reset the sniff register to zero
     dma_sniffer_set_data_accumulator(0x00000000);
 
@@ -166,10 +169,6 @@ void hex_init(void) {
 
     dma_checksum = dma_init(load_buffer, buffer, BUFFER_LEN, DMA_SIZE_8, true, true);
     dma_clear_buffer = dma_init(buffer, &nil, BUFFER_LEN, DMA_SIZE_8, false, true);
-
-    // Configure the sniffer
-    dma_sniffer_enable(dma_checksum, 0x0F, true);
-    hw_set_bits(&dma_hw->sniff_data, 0x0);
 }
 
 void hex_deinit(void) {
