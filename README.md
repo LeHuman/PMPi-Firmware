@@ -6,6 +6,8 @@ Please refer to the [parent repository](https://github.com/LeHuman/PMPi)
 
 ## Usage
 
+<!-- TODO: ADD OpenOCD location in ENV if opened without the VSCode Pico shortcut -->
+
 ### Requirements
 
 - [CMake](https://cmake.org/) >= 3.14
