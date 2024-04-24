@@ -48,6 +48,16 @@ void flash_deinit() {
     dma_deinit(dma_flash_copy);
 }
 
+static inline void flash_write(uint32_t flash_offs, const uint8_t *data, size_t count) {
+    if (flash_offs >= FLASH_HEADER_ORIGIN)
+        flash_range_program(flash_offs, data, count);
+}
+
+static inline void flash_erase(uint32_t flash_offs, size_t count) {
+    if (flash_offs >= FLASH_HEADER_ORIGIN)
+        flash_range_erase(flash_offs, count);
+}
+
 // After we've received a data hexline, buffer that data into the flashbuffer.
 // If the flashbuffer is full, then write the buffer to flash memory at the
 // programming address. If there's no more space in the erased sector of
@@ -75,17 +85,17 @@ void flash_intake(unsigned char *src, size_t sz) {
                     first_page = 1;
                 } else {
                     // Program flash memory at the programming address
-                    flash_range_program(programming_address, flashbuffer, PAGE_SIZE);
+                    flash_write(programming_address, flashbuffer, PAGE_SIZE);
                 }
             } else { // If not ...
-                // Erase the next sector (4096 bytes)
-                flash_range_erase(erasure_address, SECTOR_SIZE);
+                     // Erase the next sector (4096 bytes)
+                flash_erase(erasure_address, SECTOR_SIZE);
 
                 // Increment the erasure pointer by 4096 bytes
                 erasure_address += SECTOR_SIZE;
 
                 // Program flash memory at the programming address
-                flash_range_program(programming_address, flashbuffer, PAGE_SIZE);
+                flash_write(programming_address, flashbuffer, PAGE_SIZE);
             }
 
             // Increment the programming address by page size (256 bytes)
@@ -107,12 +117,12 @@ void flash_new_address(uint32_t address) {
         // IMPROVE: better handle for overflow in the case of switching to a new address
         if (programming_address < erasure_address) {
             // Program flash memory at the programming address
-            flash_range_program(programming_address, flashbuffer, PAGE_SIZE);
+            flash_write(programming_address, flashbuffer, PAGE_SIZE);
         } else { // If not . . .
-            // Erase the next sector (4096 bytes)
-            flash_range_erase(erasure_address, SECTOR_SIZE);
+                 // Erase the next sector (4096 bytes)
+            flash_erase(erasure_address, SECTOR_SIZE);
             // Program flash memory at the programming address
-            flash_range_program(programming_address, flashbuffer, PAGE_SIZE);
+            flash_write(programming_address, flashbuffer, PAGE_SIZE);
         }
         // NOTE: This sector may be partially full, but *should* not be accessed again
     }
@@ -125,7 +135,7 @@ void flash_new_address(uint32_t address) {
     flashdex = 0;
 
     // Erase the next sector defined by address (4096 bytes)
-    flash_range_erase(address, SECTOR_SIZE);
+    flash_erase(address, SECTOR_SIZE);
 
     // Set the programming address and next sector to erase
     programming_address = address;
@@ -141,17 +151,17 @@ void flash_finalize() {
     // If so . . .
     if (programming_address < erasure_address) {
         // Program flash memory at the programming address
-        flash_range_program(programming_address, flashbuffer, PAGE_SIZE);
+        flash_write(programming_address, flashbuffer, PAGE_SIZE);
     } else { // If not . . .
-        // Erase the next sector (4096 bytes)
-        flash_range_erase(erasure_address, SECTOR_SIZE);
+             // Erase the next sector (4096 bytes)
+        flash_erase(erasure_address, SECTOR_SIZE);
         // Program flash memory at the programming address
-        flash_range_program(programming_address, flashbuffer, PAGE_SIZE);
+        flash_write(programming_address, flashbuffer, PAGE_SIZE);
     }
 
     // We program the first page LAST, since we use it to figure out if there's
     // a valid program to vector into.
-    flash_range_program(FLASH_MAIN_ORIGIN - XIP_BASE, first_page_buffer, PAGE_SIZE);
+    flash_write(FLASH_MAIN_ORIGIN - XIP_BASE, first_page_buffer, PAGE_SIZE);
     // TODO: use a crc header instead of static values
 }
 
@@ -174,7 +184,7 @@ void flash_finalize() {
 //     first_page = 0;
 
 //     // Erase the first sector (4096 bytes)
-//     flash_range_erase(erasure_address, SECTOR_SIZE);
+//     flash_erase(erasure_address, SECTOR_SIZE);
 
 //     // Increment the erasure pointer by 4096 bytes
 //     erasure_address += SECTOR_SIZE;
