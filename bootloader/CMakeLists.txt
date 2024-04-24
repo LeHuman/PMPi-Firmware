@@ -11,8 +11,8 @@ endif()
 # ---- Project ----
 
 set(PARENT_PROJECT_NAME ${PROJECT_NAME})
-set(PARENT_PROJECT_FILE_BIN ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.bin)
-set(PARENT_PROJECT_FILE_ASM ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.S)
+# set(PARENT_PROJECT_FILE_BIN ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.bin)
+# set(PARENT_PROJECT_FILE_ASM ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.S)
 
 project(bootloader C ASM)
 set(CMAKE_C_STANDARD 17)
@@ -53,14 +53,15 @@ math(EXPR FLASH_BOOTLOADER_LENGTH "4096 * 9")
 math(EXPR FLASH_HEADER_ORIGIN "${FLASH_BOOTLOADER_ORIGIN} + ${FLASH_BOOTLOADER_LENGTH}")
 math(EXPR FLASH_HEADER_LENGTH "4096")
 
-math(EXPR FLASH_MAIN_ORIGIN "${FLASH_HEADER_ORIGIN} + ${FLASH_HEADER_LENGTH} + 4096")
+math(EXPR FLASH_MAIN_ORIGIN "${FLASH_HEADER_ORIGIN} + ${FLASH_HEADER_LENGTH}")
 math(EXPR FLASH_MAIN_LENGTH "${FLASH_TOTAL_LENGTH} - ${FLASH_BOOTLOADER_LENGTH} - ${FLASH_HEADER_LENGTH}")
 
-add_compile_definitions(FLASH_MAIN_ORIGIN=${FLASH_MAIN_ORIGIN} FLASH_BOOTLOADER_ORIGIN=${FLASH_BOOTLOADER_ORIGIN})
+add_compile_definitions(FLASH_MAIN_ORIGIN=${FLASH_MAIN_ORIGIN} FLASH_HEADER_ORIGIN=${FLASH_HEADER_ORIGIN} FLASH_BOOTLOADER_ORIGIN=${FLASH_BOOTLOADER_ORIGIN})
+add_compile_definitions(FLASH_BOOTLOADER_LENGTH=${FLASH_BOOTLOADER_LENGTH} FLASH_HEADER_LENGTH=${FLASH_HEADER_LENGTH} FLASH_MAIN_LENGTH=${FLASH_MAIN_LENGTH})
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/com_memmap.in.ld ${CMAKE_BINARY_DIR}/com_memmap.ld)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/boot_memmap.in.ld ${CMAKE_BINARY_DIR}/boot_memmap.ld)
-# configure_file(${CMAKE_CURRENT_SOURCE_DIR}/app_memmap.in.ld ${CMAKE_BINARY_DIR}/app_memmap.ld)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/app_memmap.in.ld ${CMAKE_BINARY_DIR}/app_memmap.ld)
 
 set(HEADER_FILE_BIN ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_HDR.bin)
 set(HEADER_FILE_ASM ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_HDR.S)
@@ -89,13 +90,42 @@ pico_enable_stdio_uart(${PROJECT_NAME} 0)
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
 
 # Select linker script for both bootloader and application
-pico_set_linker_script(${PARENT_PROJECT_NAME} "${CMAKE_BINARY_DIR}/com_memmap.ld")
 pico_set_linker_script(${PROJECT_NAME} "${CMAKE_BINARY_DIR}/boot_memmap.ld")
 
-add_dependencies(${PARENT_PROJECT_NAME} BootloaderAssembly ${PROJECT_NAME})
-target_sources(${PARENT_PROJECT_NAME} PRIVATE ${PROJECT_FILE_ASM})
+set(__BOOTLOADER_NAME ${PROJECT_NAME} PARENT_SCOPE)
+set(__BOOTLOADER_FILE_ASM ${PROJECT_FILE_ASM} PARENT_SCOPE)
+get_filename_component(__LINKER_DIR "${CMAKE_BINARY_DIR}/com_memmap.ld" ABSOLUTE)
+get_filename_component(__APP_LINKER_DIR "${CMAKE_BINARY_DIR}/app_memmap.ld" ABSOLUTE)
+set(__LINKER_DIR "${__LINKER_DIR}" PARENT_SCOPE)
+set(__APP_LINKER_DIR "${__APP_LINKER_DIR}" PARENT_SCOPE)
+
+set(__HEADER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/header.py" PARENT_SCOPE)
+set(__ASM_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/asm.py" PARENT_SCOPE)
+
+set(__FLASH_MAIN_ORIGIN ${FLASH_MAIN_ORIGIN} PARENT_SCOPE)
+set(__FLASH_MAIN_LENGTH ${FLASH_MAIN_LENGTH} PARENT_SCOPE)
+
+# TODO: generate standalone/stripped ihex file
+
+function(bootloader_attach proj_name)
+    pico_set_linker_script(${proj_name} "${__LINKER_DIR}")
+    add_dependencies(${proj_name} BootloaderAssembly ${__BOOTLOADER_NAME})
+    target_sources(${proj_name} PRIVATE ${__BOOTLOADER_FILE_ASM})
+
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_OBJCOPY} -O ihex "${CMAKE_CURRENT_BINARY_DIR}/${proj_name}.elf" "${CMAKE_CURRENT_BINARY_DIR}/${proj_name}_Header.hex"
+        COMMAND ${Python3_EXECUTABLE} "${__HEADER_SCRIPT}" "${CMAKE_CURRENT_BINARY_DIR}/${proj_name}_Header.hex" "${CMAKE_CURRENT_BINARY_DIR}/${proj_name}_Header.bin" ${__FLASH_MAIN_ORIGIN} ${__FLASH_MAIN_LENGTH}
+        # COMMAND ${Python3_EXECUTABLE} "${__ASM_SCRIPT}" "${CMAKE_CURRENT_BINARY_DIR}/${proj_name}_Header.bin" "${CMAKE_CURRENT_BINARY_DIR}/${proj_name}_Header.S" "flash_header" "an"
+        COMMAND ${CMAKE_OBJCOPY} --output-target=elf32-littlearm --update-section .flash_header="${CMAKE_CURRENT_BINARY_DIR}/${proj_name}_Header.bin" "${CMAKE_CURRENT_BINARY_DIR}/${proj_name}.elf" "${CMAKE_CURRENT_BINARY_DIR}/${proj_name}_OUT.elf"
+        COMMAND ${CMAKE_OBJCOPY} -O ihex "${CMAKE_CURRENT_BINARY_DIR}/${proj_name}_OUT.elf" "${CMAKE_CURRENT_BINARY_DIR}/${proj_name}_OUT.hex"
+    )
+
+    message(STATUS "Attached ${__BOOTLOADER_NAME} to ${PROJECT_NAME}")
+endfunction(bootloader_attach)
 
 # Print out flash usage for fun
 # usage_print(${PROJECT_NAME} ${PROJECT_FILE_BIN} "${FLASH_BOOTLOADER_LENGTH}" "BOOTLOADER FLASH")
 # usage_print(BOOTLOADER_ASM ${PARENT_PROJECT_HDR} "${FLASH_HEADER_LENGTH}" "FLASH HEADER")
 # usage_print(${PARENT_PROJECT_NAME} ${PARENT_PROJECT_FILE_BIN} "${FLASH_MAIN_LENGTH}" "MAIN FLASH")
+
+# arm-none-eabi-objcopy.exe -j .text -j .binary_info -j .rodata --debugging .\build\PMPi.elf .\build\PMPi_min.elf;arm-none-eabi-objcopy.exe -O ihex .\build\PMPi_min.elf .\build\PMPi.hex;arm-none-eabi-objcopy.exe -O binary .\build\PMPi_min.elf .\build\PMPi_min.bin;arm-none-eabi-objdump.exe -h .\build\PMPi_min.bin > .\build\PMPi_min.map;arm-none-eabi-readelf.exe .\build\PMPi_min.elf -lS
