@@ -14,10 +14,6 @@
 #include <hardware/dma.h>
 #include <hardware/watchdog.h>
 
-#ifndef NDEBUG
-    #include <stdio.h>
-#endif
-
 #include "dma_util.h"
 #include "flash.h"
 #include "led.h"
@@ -128,10 +124,6 @@ bool check_flash_crc32() {
 
     // FIXME: debug with both app and bootloader flashed
 
-#ifndef NDEBUG
-    printf("%u %u\n", header_crc, header_crc_sz);
-#endif
-
     if (header_crc_sz > FLASH_MAIN_LENGTH)
         return false;
 
@@ -147,10 +139,6 @@ bool check_flash_crc32() {
     dma_channel_wait_for_finish_blocking(dma_checksum);
 
     uint32_t flash_crc = dma_sniffer_get_data_accumulator();
-
-#ifndef NDEBUG
-    printf("%u\n", flash_crc);
-#endif
 
     // Disable dma sniffer and deinit dma
     dma_deinit(dma_checksum);
