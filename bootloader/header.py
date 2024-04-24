@@ -43,6 +43,7 @@ Example:
 
 import argparse
 import binascii
+import zlib
 import sys
 
 
@@ -54,28 +55,67 @@ def any_int(x: str) -> int:
         raise argparse.ArgumentTypeError(f"expected an integer, not '{x}'") from exc
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("ifile", type=str, help="Input application binary (binary)")
-parser.add_argument("ofile", type=str, help="Output header file (binary)")
-parser.add_argument("-a", "--addr", type=any_int, help="Load address of the application image")
-args = parser.parse_args()
+def calculate_crc32(filepath, start_address, end_address):
+    # Read the ihex file
+    try:
+        with open(filepath, 'r', encoding='utf-8') as file:
+            lines = file.readlines()
+    except FileNotFoundError:
+        sys.exit(f"Could not open input file '{filepath}'")
 
-try:
-    with open(args.ifile, "rb") as infile:
-        idata: bytes = infile.read()
-except FileNotFoundError:
-    sys.exit(f"Could not open input file '{args.ifile}'")
+    # Initialize variables to keep track of the current address
+    upper_address = 0
 
-vtor: int = args.addr
-size: int = len(idata)
-crc: int = binascii.crc32(idata)
+    # Extract data within the specified address range
+    data = b''
+    crc32_value = 0
 
-odata: bytes = vtor.to_bytes(4, byteorder='little') + \
-    size.to_bytes(4, byteorder='little') + \
-    crc.to_bytes(4, byteorder='little')
+    for line in lines:
+        if line.startswith(':'):
+            record_type = int(line[7:9], 16)
+            if record_type == 0:
+                record_address = int(line[3:7], 16) + (upper_address << 16)
+                record_data = binascii.unhexlify(line[9:-3])
+                if start_address <= record_address < end_address:
+                    data += record_data
+            elif record_type == 4:  # Extended Linear Address Record
+                upper_address = int(line[9:13], 16)
 
-try:
-    with open(args.ofile, "wb") as ofile:
-        ofile.write(odata)
-except OSError:
-    sys.exit(f"Could not open output file '{args.ofile}'")
+    # Calculate CRC32 checksum
+    # crc32_value = zlib.crc32(data)
+    crc32_value = binascii.crc32(data)
+    # crc32_value = sum(data)
+
+    return len(data), crc32_value
+
+
+def main() -> None:
+    """Convert ihex file to a bootloader header section"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument("ifile", type=str, help="Input application binary (binary)")
+    parser.add_argument("ofile", type=str, help="Output header file (binary)")
+    parser.add_argument("address", type=any_int, help="Load address of the main program")
+    parser.add_argument("length", type=any_int, help="Size of the main program flash space")
+    args = parser.parse_args()
+
+    vtor: int = args.address
+    crc_sz, crc = calculate_crc32(args.ifile, args.address, args.address + args.length)
+
+    odata: bytes = vtor.to_bytes(4, byteorder='little') + \
+        crc.to_bytes(4, byteorder='little') + \
+        crc_sz.to_bytes(4, byteorder='little') +\
+        (0xEFBEADDE).to_bytes(4, byteorder='little')  # DEADBEEF in ihex
+
+    try:
+        with open(args.ofile, "wb") as ofile:
+            ofile.write(odata)
+    except OSError:
+        sys.exit(f"Could not open output file '{args.ofile}'")
+
+    print(f"Header VTOR:  {hex(vtor)} {vtor}")
+    print(f"Header CRC32: {hex(crc)} {crc}")
+    print(f"Header CRC32 SZ: {hex(crc_sz)} {crc_sz}")
+
+
+if __name__ == "__main__":
+    main()

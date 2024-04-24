@@ -11,8 +11,14 @@
 
 #include "bootloader.h"
 
+#include <hardware/dma.h>
 #include <hardware/watchdog.h>
 
+#ifndef NDEBUG
+    #include <stdio.h>
+#endif
+
+#include "dma_util.h"
 #include "flash.h"
 #include "led.h"
 
@@ -113,13 +119,53 @@ void bootloader_soft_reset() {
     }
 }
 
-bool bootloader_should_run() {
-    // https://github.com/raspberrypi/pico-sdk/blob/6a7db34ff63345a7badec79ebea3aaef1712f374/src/rp2_common/pico_standard_link/crt0.S#L167
-    static uint8_t *flash_target_contents = (uint8_t *)(FLASH_MAIN_ORIGIN + 212);
-    // https://github.com/raspberrypi/pico-sdk/blob/6a7db34ff63345a7badec79ebea3aaef1712f374/src/common/pico_binary_info/include/pico/binary_info/defs.h#L40
-    uint8_t invalid_program = *((uint32_t *)flash_target_contents) != 0x7188ebf2;
+bool check_flash_crc32() {
+    int dma_checksum = 0;
+    uint8_t *flash = (uint8_t *)(FLASH_MAIN_ORIGIN);
+    uint32_t header_crc = *((uint32_t *)(FLASH_HEADER_ORIGIN + FLASH_HEADER_CRC_OFFSET));
+    uint32_t header_crc_sz = *((uint32_t *)(FLASH_HEADER_ORIGIN + FLASH_HEADER_CRC_SZ_OFFSET));
+    volatile uint8_t load_buffer;
 
-    if (watchdog_hw->scratch[0] || invalid_program) {
+    // FIXME: debug with both app and bootloader flashed
+
+#ifndef NDEBUG
+    printf("%u %u\n", header_crc, header_crc_sz);
+#endif
+
+    if (header_crc_sz > FLASH_MAIN_LENGTH)
+        return false;
+
+    // 🙏 https://forums.raspberrypi.com/viewtopic.php?t=336582 🙏
+    dma_checksum = dma_init(&load_buffer, flash, header_crc_sz, DMA_SIZE_8, true, false);
+    // channel_config_set_bswap(&config, true); // Is this set by the sniffer?
+    dma_sniffer_enable(dma_checksum, 0x1, true);
+    dma_sniffer_set_byte_swap_enabled(true);
+    dma_sniffer_set_data_accumulator(0xffffffff);
+    hw_set_bits(&dma_hw->sniff_ctrl, (DMA_SNIFF_CTRL_OUT_INV_BITS | DMA_SNIFF_CTRL_OUT_REV_BITS));
+
+    dma_channel_start(dma_checksum);
+    dma_channel_wait_for_finish_blocking(dma_checksum);
+
+    uint32_t flash_crc = dma_sniffer_get_data_accumulator();
+
+#ifndef NDEBUG
+    printf("%u\n", flash_crc);
+#endif
+
+    // Disable dma sniffer and deinit dma
+    dma_deinit(dma_checksum);
+    dma_sniffer_disable();
+
+#ifndef NDEBUG
+    stdio_flush();
+    sleep_ms(500);
+#endif
+
+    return header_crc == flash_crc;
+}
+
+bool bootloader_should_run() {
+    if (watchdog_hw->scratch[0] || !check_flash_crc32()) {
         // Reset WD scratch on soft-reset into bootloader
         watchdog_hw->scratch[0] = 0;
 

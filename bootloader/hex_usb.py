@@ -25,7 +25,7 @@ def serial_output(port: str, hex_file: str):
 
     ser.write(b'DEBUG')
 
-    time.sleep(3)
+    time.sleep(2.2)
     
     ser.close()
     ser.open()

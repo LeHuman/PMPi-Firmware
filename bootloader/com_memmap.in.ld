@@ -35,14 +35,6 @@ ENTRY(_entry_point)
 
 SECTIONS
 {
-    /* Second stage bootloader is prepended to the image. It must be 256 bytes big
-       and checksummed. It is usually built by the boot_stage2 target
-       in the Raspberry Pi Pico SDK
-    */
-
-    .flash_begin : {
-        __flash_binary_start = .;
-    } > FLASH
 
     /* Insert boot3, which is the combined boot2 + boot3 */
     .boot3 : {
@@ -54,21 +46,15 @@ SECTIONS
      * The contents will get replaced post-build
      */
     .flash_header : {
-        LONG(0xdeaddead)
+        LONG(0xdeadbeef)
+        LONG(0xdeadbeef)
+        LONG(0xdeadbeef)
+        LONG(0xefbeadde)
     } > FLASH_HDR
 
-
-    /*
-    .boot2 : {
-        __boot2_start__ = .;
-        KEEP (*(.boot2))
-        __boot2_end__ = .;
+    .flash_begin : {
+        __flash_binary_start = .;
     } > FLASH
-
-    ASSERT(__boot2_end__ - __boot2_start__ == 256,
-        "ERROR: Pico second stage bootloader must be 256 bytes in size")
-    */
-
 
     /* The second stage will always enter the image at the start of .text.
        The debugger will use the ELF entry point, which is the _entry_point

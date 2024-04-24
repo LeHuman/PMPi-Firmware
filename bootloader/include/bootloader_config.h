@@ -19,6 +19,10 @@
 #define SECTOR_SIZE 4096
 #define PAGE_SIZE 256
 
+// Flash header offsets
+#define FLASH_HEADER_CRC_OFFSET 4
+#define FLASH_HEADER_CRC_SZ_OFFSET 8
+
 // Application program offset in flash
 // This should agree with the linker script for the application program.
 // #ifndef BOOTLOADER_FLASH_SIZE
