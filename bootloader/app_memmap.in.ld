@@ -23,7 +23,7 @@
 
 MEMORY
 {
-    FLASH_HDR(r) : ORIGIN = @FLASH_HEADER_ORIGIN@, LENGTH = @FLASH_HEADER_LENGTH@
+    /* FLASH_HDR(r) : ORIGIN = @FLASH_HEADER_ORIGIN@, LENGTH = @FLASH_HEADER_LENGTH@ */
     FLASH(rx) : ORIGIN = @FLASH_MAIN_ORIGIN@, LENGTH = @FLASH_MAIN_LENGTH@
     RAM(rwx) : ORIGIN =  0x20000000, LENGTH = 256k
     SCRATCH_X(rwx) : ORIGIN = 0x20040000, LENGTH = 4k
@@ -35,12 +35,12 @@ ENTRY(_entry_point)
 SECTIONS
 {
 
-    .flash_header : {
+    /* .flash_header : {
         LONG(0xdeadbeef)
         LONG(0xdeadbeef)
         LONG(0xdeadbeef)
         LONG(0xefbeadde)
-    } > FLASH_HDR
+    } > FLASH_HDR */
 
     .flash_begin : {
         __flash_binary_start = .;

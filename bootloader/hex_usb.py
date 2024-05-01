@@ -26,7 +26,7 @@ def serial_output(port: str, hex_file: str):
     ser.write(b'DEBUG')
 
     time.sleep(2.2)
-    
+
     ser.close()
     ser.open()
 
@@ -62,6 +62,6 @@ def serial_output(port: str, hex_file: str):
 
 
 try:
-    serial_output('COM12', './build/PMPI.hex')
+    serial_output('COM12', './build/PMPi_OUT.hex')
 except serial.serialutil.SerialException as pe:
     print(f"SERIAL FAILED{' '*50}")

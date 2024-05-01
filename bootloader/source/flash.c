@@ -24,37 +24,37 @@ uint32_t programming_address = 0;
 uint32_t erasure_address = 0;
 
 int dma_flash_clear; // Clears flashbuffer
-int dma_flash_copy;  // Copies flashbuffer to first_page_buffer
+// int dma_flash_copy;  // Copies flashbuffer to first_page_buffer
 
 // Flash memory buffer and index
-unsigned char flashbuffer[PAGE_SIZE] = {0};
-unsigned char flashdex = 0;
+uint8_t flashbuffer[PAGE_SIZE] = {0};
+uint8_t flashdex = 0;
 
 // We're going to program the first page LAST, so we don't
 // accidentally vector into a partially-programmed application
-unsigned char first_page = 0;
-unsigned char first_page_buffer[PAGE_SIZE] = {0};
+// unsigned char first_page = 0;
+// unsigned char first_page_buffer[PAGE_SIZE] = {0};
 
 void flash_init() {
-    first_page = 0;
+    // first_page = 0;
     programming_address = 0;
     erasure_address = 0;
     dma_flash_clear = dma_init(flashbuffer, &nil, PAGE_SIZE, DMA_SIZE_8, false, true);
-    dma_flash_copy = dma_init(first_page_buffer, flashbuffer, PAGE_SIZE, DMA_SIZE_8, true, true);
+    // dma_flash_copy = dma_init(first_page_buffer, flashbuffer, PAGE_SIZE, DMA_SIZE_8, true, true);
 }
 
 void flash_deinit() {
     dma_deinit(dma_flash_clear);
-    dma_deinit(dma_flash_copy);
+    // dma_deinit(dma_flash_copy);
 }
 
-static inline void flash_write(uint32_t flash_offs, const uint8_t *data, size_t count) {
-    if (flash_offs >= FLASH_HEADER_ORIGIN)
+void flash_write(uint32_t flash_offs, const uint8_t *data, size_t count) {
+    if (flash_offs >= (FLASH_HEADER_ORIGIN - XIP_BASE))
         flash_range_program(flash_offs, data, count);
 }
 
-static inline void flash_erase(uint32_t flash_offs, size_t count) {
-    if (flash_offs >= FLASH_HEADER_ORIGIN)
+void flash_erase(uint32_t flash_offs, size_t count) {
+    if (flash_offs >= (FLASH_HEADER_ORIGIN - XIP_BASE))
         flash_range_erase(flash_offs, count);
 }
 
@@ -62,11 +62,26 @@ static inline void flash_erase(uint32_t flash_offs, size_t count) {
 // If the flashbuffer is full, then write the buffer to flash memory at the
 // programming address. If there's no more space in the erased sector of
 // flash memory, then erase the next sector before programming.
-void flash_intake(unsigned char *src, size_t sz) {
+void flash_intake(uint16_t address, unsigned char *src, size_t sz) {
+
+    if (((programming_address + flashdex) & 0xFFFF) < address) {
+        static unsigned char zero = 0;
+        size_t diff = address - (programming_address + flashdex);
+
+        for (size_t i = 0; i < diff; i++) {
+            flash_intake(0, &zero, 1);
+        }
+    }
+
+    // if ((((programming_address + flashdex) & 0xFFFF) != address) && (address != 0x0)) {
+    //     blink(LED_PIN, 4, 250);
+    // }
+
     for (int i = 0; i < sz; i++) {
         // Store a byte from the data buffer into the flashbuffer.
         // Increment the flashdex. This will overflow from 255->0.
-        flashbuffer[flashdex++] = src[i];
+        flashbuffer[flashdex] = src[i];
+        flashdex++;
 
         // Did we just overflow to zero? If so, it's time to program
         // the buffer into flash memory.
@@ -76,17 +91,17 @@ void flash_intake(unsigned char *src, size_t sz) {
             if (programming_address < erasure_address) {
                 // If this is the first page, copy it to the first_page_buffer
                 // and reset first_page
-                if (!first_page) {
-                    // Copy contents of flashbuffer to first_page_buffer
-                    dma_channel_set_read_addr(dma_flash_copy, flashbuffer, false);
-                    dma_channel_set_write_addr(dma_flash_copy, first_page_buffer, true);
-                    dma_channel_wait_for_finish_blocking(dma_flash_copy);
-                    // Reset first_page
-                    first_page = 1;
-                } else {
-                    // Program flash memory at the programming address
-                    flash_write(programming_address, flashbuffer, PAGE_SIZE);
-                }
+                // if (!first_page) {
+                //     // Copy contents of flashbuffer to first_page_buffer
+                //     dma_channel_set_read_addr(dma_flash_copy, flashbuffer, false);
+                //     dma_channel_set_write_addr(dma_flash_copy, first_page_buffer, true);
+                //     dma_channel_wait_for_finish_blocking(dma_flash_copy);
+                //     // Reset first_page
+                //     first_page = 1;
+                // } else {
+                // Program flash memory at the programming address
+                flash_write(programming_address, flashbuffer, PAGE_SIZE);
+                // }
             } else { // If not ...
                      // Erase the next sector (4096 bytes)
                 flash_erase(erasure_address, SECTOR_SIZE);
@@ -161,7 +176,7 @@ void flash_finalize() {
 
     // We program the first page LAST, since we use it to figure out if there's
     // a valid program to vector into.
-    flash_write(FLASH_MAIN_ORIGIN - XIP_BASE, first_page_buffer, PAGE_SIZE);
+    // flash_write(FLASH_MAIN_ORIGIN - XIP_BASE, first_page_buffer, PAGE_SIZE);
     // TODO: use a crc header instead of static values
 }
 

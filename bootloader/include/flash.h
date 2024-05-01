@@ -5,9 +5,9 @@
  * @note Not to be confused with hardware/flash. This is an API specifically for the bootloader to interface with to allow abstraction in handling how hardware is flashed.
  * @version 0.1
  * @date 2024-04-06
- * 
+ *
  * @copyright Copyright (c) 2024
- * 
+ *
  */
 
 #pragma once
@@ -17,7 +17,7 @@
 
 void flash_init();
 void flash_deinit();
-void flash_intake(unsigned char *src, size_t sz);
+void flash_intake(uint16_t address, unsigned char *src, size_t sz);
 void flash_finalize();
 /**
  * @brief Set a new address to begin programming from

@@ -49,7 +49,7 @@ math(EXPR FLASH_TOTAL_LENGTH "2048 * 1024")
 
 math(EXPR FLASH_BOOTLOADER_ORIGIN "${FLASH_XIP_BASE} + 0")
 math(EXPR FLASH_BOOTLOADER_LENGTH "4096 * 9")
-
+ 
 math(EXPR FLASH_HEADER_ORIGIN "${FLASH_BOOTLOADER_ORIGIN} + ${FLASH_BOOTLOADER_LENGTH}")
 math(EXPR FLASH_HEADER_LENGTH "4096")
 
@@ -91,6 +91,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${PROJECT_SO
 
 # Select linker script for both bootloader and application
 pico_set_linker_script(${PROJECT_NAME} "${CMAKE_BINARY_DIR}/boot_memmap.ld")
+# pico_set_linker_script(${PROJECT_NAME} "${CMAKE_BINARY_DIR}/com_memmap.ld")
 
 set(__BOOTLOADER_NAME ${PROJECT_NAME} PARENT_SCOPE)
 set(__BOOTLOADER_FILE_ASM ${PROJECT_FILE_ASM} PARENT_SCOPE)

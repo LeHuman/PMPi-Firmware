@@ -37,14 +37,14 @@ bool bootloader_load_program() {
     uint16_t msb_addr = 0;
     bool new_addr = false;
     while (hex_load()) {
-        sleep_ms(1); // FIXME: delay is needed, otherwise pico hard crashes. Issue with flash writing speed?
+        sleep_ms(10); // FIXME: delay is needed, otherwise pico hard crashes. Issue with flash writing speed?
         switch (HEX.type) {
             case HEX_Data:
                 if (new_addr) {
                     flash_new_address(((msb_addr << 16) | HEX.address));
                     new_addr = false;
                 }
-                flash_intake(HEX.data, HEX.count);
+                flash_intake(HEX.address, HEX.data, HEX.count);
                 continue;
             case HEX_EndOfFile:
                 if (new_addr) {
@@ -143,11 +143,6 @@ bool check_flash_crc32() {
     // Disable dma sniffer and deinit dma
     dma_deinit(dma_checksum);
     dma_sniffer_disable();
-
-#ifndef NDEBUG
-    stdio_flush();
-    sleep_ms(500);
-#endif
 
     return header_crc == flash_crc;
 }
