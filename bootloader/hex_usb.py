@@ -62,6 +62,6 @@ def serial_output(port: str, hex_file: str):
 
 
 try:
-    serial_output('COM12', './build/PMPi_OUT.hex')
+    serial_output('COM16', './build/PMPi_OUT.hex')
 except serial.serialutil.SerialException as pe:
     print(f"SERIAL FAILED{' '*50}")

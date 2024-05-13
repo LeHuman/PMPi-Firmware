@@ -2,14 +2,13 @@
 // All rights reserved
 
 #include <FreeRTOS.h>
+#include <hardware/watchdog.h>
 #include <lwip/ip4_addr.h>
 #include <pico/cyw43_arch.h>
 #include <pico/stdlib.h>
 
-extern "C" {
-#include "net.h"
-}
 #include "mongoose.h"
+#include "net.h"
 #include "task.h"
 
 #define TEST_TASK_PRIORITY (tskIDLE_PRIORITY + 1UL)
@@ -37,7 +36,7 @@ void main_task(__unused void *params) {
     web_init(&mgr);
 
     {
-        auto ip = mgr.conns->loc.ip;
+        uint32_t ip = *((uint32_t *)mgr.conns->loc.ip);
         printf("Connected: %u.%u.%u.%u\n", ipv4_digit(ip, 0), ipv4_digit(ip, 1), ipv4_digit(ip, 2), ipv4_digit(ip, 3));
     }
 
@@ -49,9 +48,48 @@ void main_task(__unused void *params) {
 }
 
 void print_task(__unused void *params) {
+    uint64_t count = 0;
+    uint16_t delay = 500;
     while (true) {
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-        printf("Heyo!\n");
+        vTaskDelay(pdMS_TO_TICKS(rand() % delay));
+        switch (rand() % 5) {
+            case 0:
+                printf("[ERROR] UGH: %llu\n", count);
+                break;
+            case 1:
+                printf("[WARN] WOOAH: %llu\n", count);
+                break;
+            case 2:
+                printf("Wait, what?! 💀 : %llu\n", count);
+                printf("[FATAL] oops ;) : %llu\n", count);
+                break;
+            case 3:
+                printf("[INFO] Look!!!: %llu\n", count);
+                break;
+            default:
+                if (delay && !(count % (505 - delay)))
+                    delay -= 50;
+                printf("NADA Here: %llu\nYesssir\n", count);
+                break;
+        }
+        count++;
+        if (stdio_usb_connected()) {
+            static char buf[6];
+            int c, i = 0;
+            while (((c = getchar_timeout_us(0)) != PICO_ERROR_TIMEOUT) && i < 6) {
+                buf[i] = c;
+                i++;
+                if (!strncmp(buf, "DEBUG", 5)) {
+                    printf("SWITCHING TO BOOTLOADER\n");
+                    stdio_flush();
+
+                    watchdog_hw->scratch[0] = 1;
+                    watchdog_reboot(0, 0, 1);
+                    while (1) {
+                    }
+                }
+            }
+        }
     }
 }
 
