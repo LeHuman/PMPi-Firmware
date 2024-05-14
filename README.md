@@ -1,20 +1,26 @@
 <!-- PROJECT: PMPi -->
 <!-- TITLE: PMPi-Firmware -->
+<!-- FONT: IBM Plex -->
 <!-- KEYWORDS: Controller, Raspberry Pi Pico W, Embedded, Firmware -->
 <!-- LANGUAGES: C, C++, Python -->
 <!-- TECHNOLOGY: Mongoose Embedded Web Server, RESTful API -->
 <!-- STATUS: Work In Progress -->
 
-# PMPi-Firmware
+![PMPi-Firmware-Logo](<Images/PMPi Firmware.png>)
+
+[About](#about) - [Related](#related) - [License](#license)
+
+## Status
+
+**`Work In progress`**
+> *Current main focus has been with the bootloader - May 2024*
+
+## About
 <!-- DESCRIPTION START -->
 This is the Firmware repository for the PMPi Project, a wireless PM2813 GPIB Controller using a Raspberry Pi Pico W.
 
 Please refer to the [parent repository](https://github.com/LeHuman/PMPi)
 <!-- DESCRIPTION END -->
-## Status
-
-**`Work In progress`**
-> *Current main focus has been with the bootloader - May 2024*
 
 ## Usage
 
@@ -79,3 +85,18 @@ open build/doc/doxygen/html/index.html
 ```
 
 To build the documentation locally, you will need Doxygen, jinja2 and Pygments installed on your system. -->
+
+## Related
+
+- vha3/[Serial_bootloader](https://github.com/vha3/Hunter-Adams-RP2040-Demos/tree/master/Bootloaders/Serial_bootloader)
+- usedbytes/[rp2040-serial-bootloader](https://github.com/usedbytes/rp2040-serial-bootloader)
+
+## License
+
+GNU General Public License, version 2
+
+2020 Raspberry Pi (Trading) Ltd.
+
+2013 Sergey Lyubka
+
+2024 Cesanta Software Limited
