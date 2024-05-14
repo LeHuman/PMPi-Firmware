@@ -1,12 +1,22 @@
-# PMPi-Firmware
+<!-- PROJECT: PMPi -->
+<!-- TITLE: PMPi-Firmware -->
+<!-- KEYWORDS: Controller, Raspberry Pi Pico W, Embedded, Firmware -->
+<!-- LANGUAGES: C, C++, Python -->
+<!-- TECHNOLOGY: Mongoose Embedded Web Server, RESTful API -->
+<!-- STATUS: Work In Progress -->
 
+# PMPi-Firmware
+<!-- DESCRIPTION START -->
 This is the Firmware repository for the PMPi Project, a wireless PM2813 GPIB Controller using a Raspberry Pi Pico W.
 
 Please refer to the [parent repository](https://github.com/LeHuman/PMPi)
+<!-- DESCRIPTION END -->
+## Status
+
+**`Work In progress`**
+> *Current main focus has been with the bootloader - May 2024*
 
 ## Usage
-
-<!-- TODO: ADD OpenOCD location in ENV if opened without the VSCode Pico shortcut -->
 
 ### Requirements
 
@@ -22,22 +32,22 @@ Please refer to the [parent repository](https://github.com/LeHuman/PMPi)
 This project uses Raspberry Pi's [C/C++ SDK](https://www.raspberrypi.com/documentation/microcontrollers/c_sdk.html) setup to build this project.
 
 As such, ensure to open VSCode using the Pico shortcut (on Windows) to properly set environment variables.\
-Otherwise, make sure to set the `PICO_SDK_PATH` enviroment variable.
+Otherwise, make sure to set the `PICO_SDK_PATH` environment variable and have a version of `OpenOCD` available on path for debugging.
 
-The following build commands are presented [perfunctorily](https://www.wordnik.com/words/perfunctory).
+The following build commands are presented particularly perfunctorily.
 
 ```sh
-$ mkdir build
-$ cd build
-$ export PICO_SDK_PATH=../../pico-sdk
-$ cmake ..
-$ make
+mkdir build
+cd build
+export PICO_SDK_PATH=../../pico-sdk
+cmake ..
+make
 ```
 
 ### Run clang-format
 
 Use the following commands from the project's root directory to check and fix C++ and CMake source style.
-This requires _clang-format_, _cmake-format_ and _pyyaml_ to be installed on the current system.
+This requires *clang-format*, *cmake-format* and *pyyaml* to be installed on the current system.
 
 ```bash
 cmake -S test -B build/test
@@ -56,7 +66,7 @@ These dependencies can be easily installed using pip.
 pip install clang-format==14.0.6 cmake_format==0.6.11 pyyaml
 ```
 
-### Build the documentation
+<!-- ### Build the documentation
 
 The documentation is automatically built and [published](https://thelartians.github.io/ModernCppStarter) whenever a [GitHub Release](https://help.github.com/en/github/administering-a-repository/managing-releases-in-a-repository) is created.
 To manually build documentation, call the following command.
@@ -68,4 +78,4 @@ cmake --build build/doc --target GenerateDocs
 open build/doc/doxygen/html/index.html
 ```
 
-To build the documentation locally, you will need Doxygen, jinja2 and Pygments installed on your system.
+To build the documentation locally, you will need Doxygen, jinja2 and Pygments installed on your system. -->
