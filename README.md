@@ -6,7 +6,7 @@
 <!-- TECHNOLOGY: Mongoose Embedded Web Server, RESTful API -->
 <!-- STATUS: Work In Progress -->
 
-![PMPi-Firmware-Logo](<Images/PMPi Firmware.png>)
+![PMPi-Firmware-Logo](<images/PMPi Firmware.png>)
 
 [About](#about) - [Usage](#usage) - [Related](#related) - [License](#license)
 
