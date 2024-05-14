@@ -8,7 +8,7 @@
 
 ![PMPi-Firmware-Logo](<Images/PMPi Firmware.png>)
 
-[About](#about) - [Related](#related) - [License](#license)
+[About](#about) - [Usage](#usage) - [Related](#related) - [License](#license)
 
 ## Status
 
