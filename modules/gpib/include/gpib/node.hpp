@@ -1,10 +1,19 @@
 #pragma once
 
+#include <streambuf>
+#include <string>
+
 #include <common/millis.hpp>
 
 #include "interface.hpp"
 
 namespace GPIB {
+
+/***** Control characters *****/
+constexpr uint8_t ESC = 0x1B;  // The USB escape char
+constexpr uint8_t CR = 0xD;    // Carriage return
+constexpr uint8_t LF = 0xA;    // Newline/linefeed
+constexpr uint8_t PLUS = 0x2B; // '+' character
 
 class Node {
 protected:
@@ -67,6 +76,10 @@ public:
     bool deviceAddressed = false;
 
     consteval Node(const PinOut &pinout, const Config &config, const NType type) : io(pinout, config), type(type) {}
+
+    bool receiveData(std::streambuf &dataStream, bool detectEoi, bool detectEndByte, uint8_t endByte);
+
+    void sendData(const std::u8string_view &str);
 
     virtual int init(void);
 };

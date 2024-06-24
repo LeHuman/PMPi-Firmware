@@ -60,6 +60,11 @@ void Controller::setState(State state) {
             io.assertSignal(io.bit.REN);
             break;
         case CTRL_IDLE: // Controller idle state
+
+            if (unAddressDevice()) {
+                // TODO: Failed to address device to talk
+            }
+
             setTransmitMode(TM_IDLE);
             io.clearSignal(io.bit.ATN);
             break;
@@ -68,6 +73,10 @@ void Controller::setState(State state) {
             io.assertSignal(io.bit.ATN);
             break;
         case CTRL_LISN: // Controller - read data bus
+                        // Address device to talk
+            if (addressDevice(io.bus.config.paddr, true)) {
+                // TODO: Failed to address device to talk
+            }
             // Set state for receiving data
             setTransmitMode(TM_RECV);
             io.clearSignal(io.bit.ATN);

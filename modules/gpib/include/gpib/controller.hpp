@@ -19,7 +19,7 @@ private:
     int sendCmd(uint8_t cmdByte);
 
     /**
-     * @brief Controller Only
+     * @brief
      * Untalk bus then address a device
      * talk: false=listen; true=talk;
      */
