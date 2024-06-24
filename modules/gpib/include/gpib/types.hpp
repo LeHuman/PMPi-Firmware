@@ -30,13 +30,13 @@ struct [[gnu::packed]] GPIBIO {
 
 using GPIBPins = GPIBIO<uint8_t>;
 using GPIBMask_t = uint32_t;
-using GPIBMask = GPIBIO<GPIBMask_t>;
+using GPIBMasks = GPIBIO<GPIBMask_t>;
 
 typedef union {
     GPIBPins pin;
-    const std::array<uint8_t, 16> __raw_pinout;
+    const std::array<const uint8_t, 16> __raw_pinout;
 
-    struct Mask {
+    struct GroupMask {
         const GPIBMask_t dio;
         const GPIBMask_t ctrl;
         const GPIBMask_t hand;
@@ -56,7 +56,7 @@ typedef union {
         return dio_mask() | ctrl_mask() | hand_mask();
     }
 
-    consteval GPIBMask get_pin_mask(void) const {
+    consteval GPIBMasks get_pin_mask(void) const {
         return {
             .DIO1 = (uint32_t)(uint32_t(1U) << pin.DIO1),
             .DIO2 = (uint32_t)(uint32_t(1U) << pin.DIO2),
@@ -77,7 +77,7 @@ typedef union {
         };
     }
 
-    consteval Mask get_bit_mask(void) const {
+    consteval GroupMask get_group_mask(void) const {
         return {dio_mask(), ctrl_mask(), hand_mask(), all_mask()};
     }
 

@@ -8,13 +8,13 @@ namespace GPIB {
 class GPIBIOInterface {
 public:
     const PinOut pinout;
-    const GPIBMask bit;
-    const PinOut::Mask mask;
+    const GPIBMasks bit;
+    const PinOut::GroupMask mask;
 
     GPIBBus bus;
 
 public:
-    consteval GPIBIOInterface(const PinOut &pinout, const Config &config) : pinout(pinout), bit(pinout.get_pin_mask()), mask(pinout.get_bit_mask()), bus(config) {}
+    consteval GPIBIOInterface(const PinOut &pinout, const Config &config) : pinout(pinout), bit(pinout.get_pin_mask()), mask(pinout.get_group_mask()), bus(config) {}
 
     uint8_t loadDataByte(void);
 
