@@ -12,3 +12,4 @@ cmake-*
 *.bak
 
 /examples
+/pmpi-cppcheck-build-dir
