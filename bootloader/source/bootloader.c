@@ -13,6 +13,8 @@
 
 #include <hardware/dma.h>
 #include <hardware/watchdog.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "dma_util.h"
 #include "flash.h"
@@ -32,7 +34,7 @@
     #define input_deinit bin_deinit
 #endif
 
-bool bootloader_load_program() {
+bool bootloader_load_program(void) {
 #if defined(BOOT_INPUT_HEX)
     uint16_t msb_addr = 0;
     bool new_addr = false;
@@ -41,14 +43,14 @@ bool bootloader_load_program() {
         switch (HEX.type) {
             case HEX_Data:
                 if (new_addr) {
-                    flash_new_address(((msb_addr << 16) | HEX.address));
+                    flash_new_address(((msb_addr << 16u) | HEX.address));
                     new_addr = false;
                 }
                 flash_intake(HEX.address, HEX.data, HEX.count);
-                continue;
+                break;
             case HEX_EndOfFile:
                 if (new_addr) {
-                    flash_new_address(((msb_addr << 16) | HEX.address));
+                    flash_new_address(((msb_addr << 16u) | HEX.address));
                     new_addr = false;
                 }
                 flash_finalize();
@@ -57,9 +59,10 @@ bool bootloader_load_program() {
             case HEX_ExtendedLinearAddress:
                 msb_addr = (HEX.data[0] << 8) | HEX.data[1];
                 new_addr = true;
-                continue;
+                break;
             default:
                 continue;
+                break;
         }
     }
 #elif defined(BOOT_INPUT_ELF)
@@ -72,7 +75,7 @@ bool bootloader_load_program() {
     return false;
 }
 
-void bootloader_exit() {
+void bootloader_exit(void) {
     asm volatile(
         "mov r0, %[start]\n"
         "ldr r1, =%[vtable]\n"
@@ -102,8 +105,8 @@ void bootloader_deinit(void) {
     // hw_set_bits((io_rw_32 *)0xe000e010, 0xFFFFFFFF);
 
     // Turn off interrupts (NVIC ICER, NVIC ICPR)
-    hw_set_bits((io_rw_32 *)0xe000e180, 0xFFFFFFFF);
-    hw_set_bits((io_rw_32 *)0xe000e280, 0xFFFFFFFF);
+    hw_set_bits((io_rw_32 *)0xe000e180u, 0xFFFFFFFFu);
+    hw_set_bits((io_rw_32 *)0xe000e280u, 0xFFFFFFFFu);
 
     // SysTick->CTRL &= ~1;
 }

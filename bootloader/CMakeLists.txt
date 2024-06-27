@@ -15,7 +15,7 @@ set(PARENT_PROJECT_NAME ${PROJECT_NAME})
 # set(PARENT_PROJECT_FILE_ASM ${CMAKE_BINARY_DIR}/${PROJECT_NAME}.S)
 
 project(bootloader C ASM)
-set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD 23)
 
 add_compile_options(-Wall
         -Wno-format          # int != int32_t as far as the compiler is concerned because gcc has int32_t as long int

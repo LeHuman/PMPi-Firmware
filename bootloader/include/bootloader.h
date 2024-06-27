@@ -21,7 +21,7 @@
  *
  * @details Sets the VTOR register and stack pointer then jumps to the reset vector in the main app. Basically copied from crt0.S.
  */
-void bootloader_exit();
+void bootloader_exit(void);
 
 /**
  * @brief Initialize bootloader peripherals and variables.
@@ -41,7 +41,7 @@ void bootloader_deinit(void);
  * @retval true Successfully loaded a new program
  * @retval false Failed to load a new program
  */
-bool bootloader_load_program();
+bool bootloader_load_program(void);
 
 /**
  * @brief Returns whether the bootloader should run
