@@ -18,7 +18,7 @@ int Controller::init(void) {
     deinit();
     Common::delay_ms(200); // Allow settling time
     // Set GPIB control bus to controller idle mode
-    setState(CTRL_INIT);
+    setState(INIT);
     // Initialise GPIB data lines (sets to INPUT_PULLUP)
     io.readyGpibDbus();
     // Assert IFC to signal controller in charge (CIC)
@@ -52,15 +52,14 @@ void Controller::sendIFC(void) {
 
 void Controller::setState(State state) {
     switch (state) {
-        case CTRL_INIT: // Initialisation
+        case INIT: // Initialisation
             // Signal IFC, REN and ATN, listen to SRQ
             io.bus.setMode(io.bit.SRQ, InputPullup);
             io.bus.setMode(io.bit.IFC | io.bit.REN | io.bit.ATN, OutputHigh);
             setTransmitMode(TM_IDLE);
             io.assertSignal(io.bit.REN);
             break;
-        case CTRL_IDLE: // Controller idle state
-
+        case IDLE: // Controller idle state
             if (unAddressDevice()) {
                 // TODO: Failed to address device to talk
             }
@@ -68,12 +67,12 @@ void Controller::setState(State state) {
             setTransmitMode(TM_IDLE);
             io.clearSignal(io.bit.ATN);
             break;
-        case CTRL_COMD: // Controller active - send commands
+        case COMMAND: // Controller active - send commands
             setTransmitMode(TM_SEND);
             io.assertSignal(io.bit.ATN);
             break;
-        case CTRL_LISN: // Controller - read data bus
-                        // Address device to talk
+        case LISTEN: // Controller - read data bus
+                     // Address device to talk
             if (addressDevice(io.bus.config.paddr, true)) {
                 // TODO: Failed to address device to talk
             }
@@ -81,7 +80,7 @@ void Controller::setState(State state) {
             setTransmitMode(TM_RECV);
             io.clearSignal(io.bit.ATN);
             break;
-        case CTRL_TALK: // Controller - write data bus
+        case TALK: // Controller - write data bus
             setTransmitMode(TM_SEND);
             io.clearSignal(io.bit.ATN);
             break;
@@ -94,8 +93,8 @@ void Controller::setState(State state) {
 
 int Controller::sendCmd(uint8_t cmdByte) {
     // Set lines for command and assert ATN
-    if (this->state != CTRL_COMD) {
-        setState(CTRL_COMD);
+    if (this->state != COMMAND) {
+        setState(COMMAND);
     }
 
     // Send the command
@@ -126,6 +125,9 @@ int Controller::addressDevice(uint8_t addr, bool talk) {
 }
 
 int Controller::unAddressDevice() {
+    if (deviceAddressed == false) {
+        return 1;
+    }
     // De-bounce
     Common::delay_us(30);
     // Utalk/unlisten
