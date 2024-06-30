@@ -179,7 +179,7 @@ hardware_pio
 FreeRTOS-Kernel
 FreeRTOS-Kernel-Heap4 # FreeRTOS kernel and dynamic heap
 GPIB
-SPIFlash
+# SPIFlash
 freertos_config
 freertos_plus_fat
 freertos_plus_fat_rpi_pico_port

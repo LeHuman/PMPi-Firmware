@@ -6,13 +6,66 @@
 #include <lwip/ip4_addr.h>
 #include <pico/cyw43_arch.h>
 #include <pico/stdlib.h>
+#include <portability.h>
 
+#include "gpib.hpp"
 #include "mongoose.h"
 #include "net.h"
+// #include "spi_flash.hpp"
 #include "task.h"
+//
+#include "ff_headers.h"
+#include "ff_sddisk.h"
+#include "ff_stdio.h"
+#include "ff_utils.h"
+//
+#include "hw_config.h"
 
 #define TEST_TASK_PRIORITY (tskIDLE_PRIORITY + 1UL)
 #define TEST_TASK_STACK_SIZE ((configSTACK_DEPTH_TYPE)2048)
+
+static inline void stop() {
+    fflush(stdout);
+    __breakpoint();
+}
+
+// See https://www.freertos.org/FreeRTOS-Plus/FreeRTOS_Plus_FAT/Standard_File_System_API.html
+
+static void SimpleTask(void *arg) {
+    (void)arg;
+
+    printf("\n%s: Hello, world!\n", pcTaskGetName(NULL));
+
+    FF_Disk_t *pxDisk = FF_SDDiskInit("sd0");
+    configASSERT(pxDisk);
+    FF_Error_t xError = FF_SDDiskMount(pxDisk);
+    if (FF_isERR(xError) != pdFALSE) {
+        FF_PRINTF("FF_SDDiskMount: %s\n",
+                  (const char *)FF_GetErrMessage(xError));
+        stop();
+    }
+    FF_FS_Add("/sd0", pxDisk);
+
+    FF_FILE *pxFile = ff_fopen("/sd0/filename.txt", "a");
+    if (!pxFile) {
+        FF_PRINTF("ff_fopen failed: %s (%d)\n", strerror(stdioGET_ERRNO()), stdioGET_ERRNO());
+        stop();
+    }
+    if (ff_fprintf(pxFile, "Hello, world!\n") < 0) {
+        FF_PRINTF("ff_fprintf failed: %s (%d)\n", strerror(stdioGET_ERRNO()), stdioGET_ERRNO());
+        stop();
+    }
+    if (-1 == ff_fclose(pxFile)) {
+        FF_PRINTF("ff_fclose failed: %s (%d)\n", strerror(stdioGET_ERRNO()), stdioGET_ERRNO());
+        stop();
+    }
+    FF_FS_Remove("/sd0");
+    FF_Unmount(pxDisk);
+    FF_SDDiskDelete(pxDisk);
+    puts("Goodbye, world!");
+
+    vTaskDelete(NULL);
+}
 
 static struct mg_mgr mgr;
 
@@ -47,9 +100,38 @@ void main_task(__unused void *params) {
     cyw43_arch_deinit();
 }
 
+constexpr GPIB::PinOut gpib_pinout{
+    {
+        .DIO1 = 0,
+        .DIO2 = 1,
+        .DIO3 = 2,
+        .DIO4 = 3,
+        .DIO5 = 4,
+        .DIO6 = 5,
+        .DIO7 = 6,
+        .DIO8 = 7,
+
+        .REN = 8,
+        .EOI = 9,
+        .IFC = 13,
+        .SRQ = 14,
+        .ATN = 15,
+
+        .DAV = 10,
+        .NRFD = 11,
+        .NDAC = 12,
+    },
+};
+
+GPIB::Controller ctrl(gpib_pinout, GPIB::default_config);
+// constexpr GPIB::Controller ctrl();
+
+// const Flash::SPI::Device bulk_flash{"Bulk Flash", spi0, 133 * 1000 * 1000};
+
 void print_task(__unused void *params) {
     uint64_t count = 0;
     uint16_t delay = 500;
+
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(rand() % delay));
         switch (rand() % 5) {
@@ -72,6 +154,7 @@ void print_task(__unused void *params) {
                 printf("NADA Here: %llu\nYesssir\n", count);
                 break;
         }
+        // printf("MASK: %ul\n", ctrl.mask_dio);
         count++;
         if (stdio_usb_connected()) {
             static char buf[6];
