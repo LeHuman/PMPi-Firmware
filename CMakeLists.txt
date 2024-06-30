@@ -12,12 +12,40 @@ endif()
 # ---- Project ----
 
 project(PMPi C CXX ASM)
-set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD 23)
 set(PICO_BOARD pico_w)
 
 # Initialize the SDK
 pico_sdk_init()
+
+find_program(CPPCHECK cppcheck)
+if(CPPCHECK)
+    message(STATUS "cppcheck found: ${CPPCHECK}")
+
+    # Define cppcheck command with specified options
+    # set(CPPCHECK_OPTIONS
+    #     --enable=all
+    #     --inconclusive
+    #     --quiet
+    #     --template=gcc
+    #     --library=cppcheck-lib
+    #     --library=cppunit
+    #     --library=gnu
+    #     --addon=threadsafety
+    #     --addon=y2038
+    #     --addon=misra
+    # )
+
+    # Set cppcheck command for C and C++ compilers
+    # set(CMAKE_C_CPPCHECK "${CPPCHECK};${CPPCHECK_OPTIONS}")
+    # set(CMAKE_CXX_CPPCHECK "${CPPCHECK};${CPPCHECK_OPTIONS}")
+
+    # set(CMAKE_CXX_CPPCHECK "cppcheck --std=c++20 --enable=all --inconclusive --quiet --template=gcc --max-ctu-depth=2 --library=cppcheck-lib --library=cppunit --library=gnu --addon=threadsafety --addon=y2038 --addon=misra")
+    # set(CMAKE_C_CPPCHECK "cppcheck --std=c18 --enable=all --inconclusive --quiet --template=gcc --max-ctu-depth=2 --library=cppcheck-lib --library=cppunit --library=gnu --addon=threadsafety --addon=y2038 --addon=misra")    
+else()
+    message(WARNING "cppcheck not found. Static analysis will not be performed.")
+endif()
 
 # ---- Include guards ----
 
@@ -43,13 +71,41 @@ CPMAddPackage(
     GITHUB_REPOSITORY FreeRTOS/FreeRTOS-Kernel
     DOWNLOAD_ONLY YES
 )
+set(FREERTOS_HEAP 4)
 set(ENV{FREERTOS_KERNEL_PATH} ${freertos_kernel_SOURCE_DIR})
 endif()
 include(FreeRTOS_Kernel_import.cmake)
 
+set(PRE_LOAD_MODULES "freertos_config;common_api")
+
+foreach(SUBDIR ${PRE_LOAD_MODULES})
+    message("Add Module: ${SUBDIR}")
+    add_subdirectory(${CMAKE_SOURCE_DIR}/modules/${SUBDIR})
+    include_directories(${CMAKE_SOURCE_DIR}/modules/${SUBDIR}/include)
+endforeach()
+
+# add_library(freertos_plus_fat_port ALIAS freertos_plus_fat_rpi_pico_port) # IMPROVE: Should we use the actual repo cmake instead?
+set(FREERTOS_PLUS_FAT_PORT A_CUSTOM_PORT)
+CPMAddPackage(
+    NAME FreeRTOS-PLUS-FAT
+    GIT_TAG main
+    GITHUB_REPOSITORY FreeRTOS/Lab-Project-FreeRTOS-FAT
+    DOWNLOAD_ONLY YES
+)
+file(GLOB freertos_plus_fat_sources
+    ${FreeRTOS-PLUS-FAT_SOURCE_DIR}/*.c
+)
+set(GLOB freertos_plus_fat_headers
+    ${FreeRTOS-PLUS-FAT_SOURCE_DIR}/include
+)
+add_library(freertos_plus_fat INTERFACE ${freertos_plus_fat_sources})
+target_link_libraries(freertos_plus_fat INTERFACE FreeRTOS-Kernel FreeRTOS-Kernel-Heap4)
+target_include_directories(freertos_plus_fat INTERFACE ${FreeRTOS-PLUS-FAT_SOURCE_DIR}/include)
+# target_compile_definitions(freertos_plus_fat INTERFACE portINLINE=inline)
+
 CPMAddPackage(
     NAME mongoose
-    GIT_TAG 7.13
+    GIT_TAG 7.14
     GITHUB_REPOSITORY cesanta/mongoose
     DOWNLOAD_ONLY YES
 )
@@ -68,6 +124,20 @@ file(GLOB mongoose_sources
 # )
 # target_include_directories(mongoose INTERFACE ${mongoose_SOURCE_DIR})
 
+# add_subdirectory(${CMAKE_SOURCE_DIR}/modules)
+
+file(GLOB MODULE_SUBDIRS RELATIVE ${CMAKE_SOURCE_DIR}/modules ${CMAKE_SOURCE_DIR}/modules/*)
+foreach(SUBDIR ${MODULE_SUBDIRS})
+    if(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/modules/${SUBDIR})
+        if (NOT ${SUBDIR} IN_LIST PRE_LOAD_MODULES)
+            message("Add Module: ${SUBDIR}")
+            add_subdirectory(${CMAKE_SOURCE_DIR}/modules/${SUBDIR})
+            include_directories(${CMAKE_SOURCE_DIR}/modules/${SUBDIR}/include)
+        endif()
+    endif()
+endforeach()
+
+
 # ---- Add source files ----
 
 # Note: globbing sources is considered bad practice as CMake's generators may not detect new files
@@ -83,7 +153,9 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${headers} ${sources})
 # being a cross-platform target, we enforce standards conformance on MSVC
 # target_compile_options(${PROJECT_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
 
-add_compile_options(-Wall
+add_compile_options(
+        -fanalyzer
+        -Wall
         -Wno-format          # int != int32_t as far as the compiler is concerned because gcc has int32_t as long int
         -Wno-unused-function # we have some for the docs that aren't called
         )
@@ -104,10 +176,14 @@ ENDFOREACH()
 target_link_libraries(${PROJECT_NAME} PRIVATE
 pico_stdlib
 hardware_pio
+FreeRTOS-Kernel
 FreeRTOS-Kernel-Heap4 # FreeRTOS kernel and dynamic heap
+GPIB
+SPIFlash
+freertos_config
+freertos_plus_fat
+freertos_plus_fat_rpi_pico_port
 )
-
-# add_compile_definitions(PICO_DEOPTIMIZED_DEBUG=1)
 
 # Link Pico W only dependencies
 if(PICO_BOARD STREQUAL "pico_w")
