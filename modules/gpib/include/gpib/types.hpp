@@ -131,7 +131,7 @@ typedef struct {
     const EOS eos;         // EOS (end of send to GPIB) characters [0=CRLF, 1=CR, 2=LF, 3=None]
     const uint8_t stat;    // Status byte to return in response to a serial poll
     const AMode amode;     // Auto mode setting (0=off; 1=Prologix; 2=onquery; 3=continuous);
-    const int rtmo;        // Read timout (read_tmo_ms) in milliseconds - 0-3000 - value depends on instrument
+    const uint32_t rtmo;   // Read timout (read_tmo_ms) in milliseconds - 0-3000 - value depends on instrument
     const char vstr[48];   // Custom version string
     const EOR eor;         // EOR (end of receive from GPIB instrument) characters [0=CRLF, 1=CR, 2=LF, 3=None, 4=LFCR, 5=ETX, 6=CRLF+ETX, 7=SPACE]
     const char sname[16];  // Interface short name
