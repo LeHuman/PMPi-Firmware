@@ -12,6 +12,7 @@
 #include "mongoose.h"
 #include "net.h"
 // #include "spi_flash.hpp"
+#include "i2c.hpp"
 #include "task.h"
 //
 #include "ff_headers.h"
@@ -184,8 +185,10 @@ void vLaunch(void) {
 }
 
 int main(void) {
+    timer_hw->dbgpause = 0;
     stdio_init_all();
-    vLaunch();
+    // vLaunch();
+    I2C::test();
 
     return 0;
 }

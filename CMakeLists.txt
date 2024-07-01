@@ -179,6 +179,7 @@ hardware_pio
 FreeRTOS-Kernel
 FreeRTOS-Kernel-Heap4 # FreeRTOS kernel and dynamic heap
 GPIB
+I2C
 # SPIFlash
 freertos_config
 freertos_plus_fat
@@ -210,8 +211,8 @@ if(PICO_BOARD STREQUAL "pico_w")
     )
 endif(PICO_BOARD STREQUAL "pico_w")
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/bootloader)
-bootloader_attach(${PROJECT_NAME})
+# add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/bootloader)
+# bootloader_attach(${PROJECT_NAME})
 pico_add_extra_outputs(${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include ${mongoose_SOURCE_DIR}) # TODO: Move mongoose into library
