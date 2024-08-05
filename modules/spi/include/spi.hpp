@@ -1,6 +1,8 @@
 #pragma once
 
 #include <atomic>
+#include <bit>
+#include <cstdint>
 
 #include <hardware/gpio.h>
 #include <hardware/resets.h>
@@ -21,6 +23,33 @@ public:
         SPI_1,
     };
 
+private:
+    static constexpr uintptr_t get_spi_instance(const Instance instance) {
+        // Establish what SPI instance we are using
+        switch (instance) {
+            case Instance::SPI_0:
+                return SPI0_BASE;
+            case Instance::SPI_1:
+                return SPI1_BASE;
+            default:
+                consteval_assert(false, "Invalid spi instance chosen.");
+                return SPI0_BASE;
+        }
+    }
+
+    static constexpr uint32_t get_spi_reset_bits(const Instance instance) {
+        switch (instance) {
+            case Instance::SPI_0:
+                return RESETS_RESET_SPI0_BITS;
+            case Instance::SPI_1:
+                return RESETS_RESET_SPI1_BITS;
+            default:
+                consteval_assert(false, "Invalid spi instance chosen.");
+                return RESETS_RESET_SPI0_BITS;
+        }
+    }
+
+public:
     struct Device : Common::Device {
         const Instance instance;
         const uint32_t baudrate;
@@ -32,7 +61,8 @@ public:
             const int8_t SCK;  // CLK
             const int8_t CS;   // CSn
         } pinout;
-        consteval Device(const char *const name, Instance instance, uint32_t baudrate, Pinout_t pinout) : Common::Device{name}, instance(instance), baudrate(baudrate), pinout(pinout) {
+
+        consteval Device(const char *const name, const Instance instance, const uint32_t baudrate, const Pinout_t pinout) : Common::Device{name}, instance(instance), baudrate(baudrate), pinout(pinout) {
             switch (instance) {
                 case Instance::SPI_0:
                 case Instance::SPI_1:
@@ -45,94 +75,43 @@ public:
     };
 
     // TODO: x4 Read and Writes, will probably require pio
-    const Device *dev;
+    const Device &dev;
 
 private:
-    spi_inst_t *spi = nullptr;
-    spi_hw_t *spi_hw = nullptr; // spi_get_hw(spi)
-    uint32_t reset_bits = 0;
-
-    uint32_t baudrate;
+    uint32_t baudrate = 0;
     std::atomic_int transfer = 0;
 
     // TODO: Better HOLD and WP control
     bool HOLD = false;
     bool WP = false;
 
+    const uint32_t reset_bits;
+    const uintptr_t spi_ptr;
+
     struct {
         DMA::Memory tx;
         DMA::Memory rx;
     } dma;
-
-    constexpr spi_inst_t *get_spi_instance(const Device *dev) const {
-        // Establish what SPI instance we are using
-        switch (dev->instance) {
-            case Instance::SPI_0:
-                return spi0; // BROKEN: error: 'reinterpret_cast' is not a constant expression
-            case Instance::SPI_1:
-                return spi1;
-            default:
-                consteval_assert(false, "Invalid spi instance chosen.");
-                return spi0;
-        }
-    }
-    constexpr spi_hw_t *get_spi_hw_instance(const Device *dev) const {
-        switch (dev->instance) {
-            case Instance::SPI_0:
-                return spi0_hw;
-            case Instance::SPI_1:
-                return spi1_hw;
-            default:
-                consteval_assert(false, "Invalid spi instance chosen.");
-                return spi0_hw;
-        }
-    }
-
-    constexpr uint32_t get_spi_reset_bits(const Device *dev) const {
-        switch (dev->instance) {
-            case Instance::SPI_0:
-                return RESETS_RESET_SPI0_BITS;
-            case Instance::SPI_1:
-                return RESETS_RESET_SPI1_BITS;
-            default:
-                consteval_assert(false, "Invalid spi instance chosen.");
-                return RESETS_RESET_SPI0_BITS;
-        }
-    }
-
-    constexpr uint get_spi_dreq(spi_inst_t *spi, bool is_tx) {
-        static_assert(DREQ_SPI0_RX == DREQ_SPI0_TX + 1, "");
-        static_assert(DREQ_SPI1_RX == DREQ_SPI1_TX + 1, "");
-        static_assert(DREQ_SPI1_TX == DREQ_SPI0_TX + 2, "");
-        return DREQ_SPI0_TX + spi_get_index(spi) * 2 + !is_tx;
-    }
+    spi_inst_t *spi;
+    spi_hw_t *spi_hw;
 
     inline void cs_select(void) const {
         asm volatile("nop \n nop \n nop");
-        gpio_put(dev->pinout.CS, 0); // Active low
+        gpio_put(dev.pinout.CS, 0); // Active low
         asm volatile("nop \n nop \n nop");
     }
 
     inline void cs_deselect(void) {
         asm volatile("nop \n nop \n nop");
-        gpio_put(dev->pinout.CS, 1);
+        gpio_put(dev.pinout.CS, 1);
         asm volatile("nop \n nop \n nop");
     }
 
 public:
-    SPI(const Device *dev) : dev(dev), spi(get_spi_instance(dev)), reset_bits(get_spi_reset_bits(dev)), dma({.tx = {&spi_get_hw(spi)->dr, spi_get_dreq(spi, true)}, .rx = {&spi_get_hw(spi)->dr, spi_get_dreq(spi, false)}}), baudrate(0) {}
-    // consteval SPI(const Device *dev) : dev(dev), spi(get_spi_instance(dev)), spi_hw(get_spi_hw_instance(dev)), reset_bits(get_spi_reset_bits(dev)), dma({.tx = {&spi_hw->dr, get_spi_dreq(spi, true)}, .rx = {&spi_hw->dr, get_spi_dreq(spi, false)}}), baudrate(0) {
-    // switch (dev->instance) {
-    //     case Instance::SPI_0:
-    //     case Instance::SPI_1:
-    //         break;
-    //     default:
-    //         consteval_assert(false, "Invalid spi instance chosen.");
-    //         break;
-    // }
-    // }
+    SPI(const Device &dev) : dev(dev), reset_bits(get_spi_reset_bits(dev.instance)), spi_ptr(get_spi_instance(dev.instance)), spi(reinterpret_cast<spi_inst_t *>(spi_ptr)), spi_hw(reinterpret_cast<spi_hw_t *>(spi_ptr)), dma{{&spi_hw->dr, spi_get_dreq(spi, true)}, {&spi_hw->dr, spi_get_dreq(spi, false)}} {
+    }
 
-    int init() {
+    int32_t init() {
         // To begin with, claim DMAs
         if (dma.tx.init() < 0 || dma.rx.init() < 0) {
             int tx_unclaim = dma.tx.deinit();
@@ -144,17 +123,17 @@ public:
         }
 
         // Setup Hold and Write protect pins if not negative
-        if (dev->pinout.HOLD >= 0) {
-            gpio_set_dir(dev->pinout.HOLD, GPIO_OUT);
-            gpio_put(dev->pinout.HOLD, true);
-            gpio_set_function(dev->pinout.HOLD, GPIO_FUNC_SIO);
+        if (dev.pinout.HOLD >= 0) {
+            gpio_set_dir(dev.pinout.HOLD, GPIO_OUT);
+            gpio_put(dev.pinout.HOLD, true);
+            gpio_set_function(dev.pinout.HOLD, GPIO_FUNC_SIO);
             HOLD = true;
         }
 
-        if (dev->pinout.WP >= 0) {
-            gpio_set_dir(dev->pinout.WP, GPIO_OUT);
-            gpio_put(dev->pinout.WP, false);
-            gpio_set_function(dev->pinout.WP, GPIO_FUNC_SIO);
+        if (dev.pinout.WP >= 0) {
+            gpio_set_dir(dev.pinout.WP, GPIO_OUT);
+            gpio_put(dev.pinout.WP, false);
+            gpio_set_function(dev.pinout.WP, GPIO_FUNC_SIO);
             WP = true;
         }
 
@@ -162,7 +141,7 @@ public:
         reset_block(reset_bits);
         unreset_block_wait(reset_bits);
         // Attempt to set baudrate
-        baudrate = spi_set_baudrate(spi, dev->baudrate); // TODO: What do we do if baudrate does not match or is not similar?
+        baudrate = spi_set_baudrate(spi, dev.baudrate); // TODO: What do we do if baudrate does not match or is not similar?
         // Use TI's format, supported by the MT29F4G01ABAFD
         spi_set_format(spi, 8, SPI_CPOL_1, SPI_CPHA_1, SPI_MSB_FIRST);
         // Always enable DREQ signals -- harmless if DMA is not listening
@@ -170,18 +149,18 @@ public:
         // Finally enable the SPI
         hw_set_bits(&spi_hw->cr1, SPI_SSPCR1_SSE_BITS);
 
-        gpio_set_dir(dev->pinout.CS, GPIO_OUT);
-        gpio_put(dev->pinout.CS, 1);
-        gpio_set_function(dev->pinout.CS, GPIO_FUNC_SIO);
-        gpio_set_function(dev->pinout.Rx, GPIO_FUNC_SPI);
-        gpio_set_function(dev->pinout.Tx, GPIO_FUNC_SPI);
-        gpio_set_function(dev->pinout.SCK, GPIO_FUNC_SPI);
+        gpio_set_dir(dev.pinout.CS, GPIO_OUT);
+        gpio_put(dev.pinout.CS, 1);
+        gpio_set_function(dev.pinout.CS, GPIO_FUNC_SIO);
+        gpio_set_function(dev.pinout.Rx, GPIO_FUNC_SPI);
+        gpio_set_function(dev.pinout.Tx, GPIO_FUNC_SPI);
+        gpio_set_function(dev.pinout.SCK, GPIO_FUNC_SPI);
 
         _enabled = true;
         return -(baudrate == 0);
     }
 
-    int deinit() {
+    int32_t deinit() {
         spi_deinit(spi);
         baudrate = 0;
         _enabled = false;
@@ -196,12 +175,12 @@ public:
     }
 
     bool set_hold(bool use_with_transfers) {
-        HOLD = (dev->pinout.HOLD >= 0) && use_with_transfers;
+        HOLD = (dev.pinout.HOLD >= 0) && use_with_transfers;
         return HOLD;
     }
 
     bool set_write_protect(bool use_with_transfers) {
-        WP = (dev->pinout.WP >= 0) && use_with_transfers;
+        WP = (dev.pinout.WP >= 0) && use_with_transfers;
         return WP;
     }
 
@@ -218,10 +197,10 @@ public:
         if (transfer == 0) {
             transfer = 1;
             if (HOLD) {
-                gpio_put(dev->pinout.HOLD, true);
+                gpio_put(dev.pinout.HOLD, true);
             }
             if (WP) {
-                gpio_put(dev->pinout.WP, true);
+                gpio_put(dev.pinout.WP, true);
             }
             cs_select();
         }
@@ -259,16 +238,16 @@ public:
         }
         cs_deselect();
         if (HOLD) {
-            gpio_put(dev->pinout.HOLD, false);
+            gpio_put(dev.pinout.HOLD, false);
         }
         if (WP) {
-            gpio_put(dev->pinout.WP, false);
+            gpio_put(dev.pinout.WP, false);
         }
         transfer = 0;
         return 0;
     }
 
-    int POST() {
+    int32_t POST() {
         // Force loopback for testing
         // hw_set_bits(&spi_get_hw(spi_default)->cr1, SPI_SSPCR1_LBM_BITS);
         return 0;
