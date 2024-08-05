@@ -1,19 +1,21 @@
 #pragma once
 
+#include <cstdint>
+
 #include "common/peripheral.hpp"
 
 namespace DMA {
 
 class DMA : public Common::Interface {
 protected:
-    int channel = -1;
+    int32_t channel = -1;
 
 public:
-    static inline int __get_dma_instance(DMA &dma) {
+    static inline uint32_t __get_dma_instance(DMA &dma) {
         return dma.channel; // IMPROVE: Check for valid channel?
     }
 
-    static inline int __get_dma_instance(DMA *dma) {
+    static inline uint32_t __get_dma_instance(DMA *dma) {
         return dma->channel; // IMPROVE: Check for valid channel?
     }
 
@@ -24,7 +26,7 @@ public:
  *
  * @param dma_interfaces vardic parameter for multiple DMA instances
  */
-#define DMA_Trigger(dma_interfaces...) dma_start_channel_mask(FOR_EACH(__DMA_Trigger, dma_interfaces) 0U)
+#define DMA_Trigger(dma_interfaces...) dma_start_channel_mask(FOR_EACH(__DMA_Trigger, dma_interfaces) 0u)
 };
 
 } // namespace DMA
