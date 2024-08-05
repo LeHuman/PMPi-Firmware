@@ -64,6 +64,24 @@ include(get_env.cmake)
 include(cmake/CPM.cmake)
 include(cmake/tools.cmake)
 
+CPMAddPackage(
+    NAME doctest
+    GIT_TAG v2.4.11
+    GITHUB_REPOSITORY doctest/doctest
+)
+add_compile_definitions(
+# DOCTEST_CONFIG_DISABLE
+DOCTEST_CONFIG_IMPLEMENT
+DOCTEST_CONFIG_NO_EXCEPTIONS
+#DOCTEST_CONFIG_NO_INCLUDE_IOSTREAM
+DOCTEST_CONFIG_USE_STD_HEADERS
+DOCTEST_CONFIG_NO_MULTITHREADING
+DOCTEST_CONFIG_NO_POSIX_SIGNALS
+DOCTEST_CONFIG_NO_WINDOWS_SEH
+DOCTEST_CONFIG_NO_TRY_CATCH_IN_ASSERTS
+#DOCTEST_CONFIG_COLORS_NONE
+)
+
 if (NOT DEFINED ENV{FREERTOS_KERNEL_PATH})
 CPMAddPackage(
     NAME freertos_kernel
@@ -76,7 +94,7 @@ set(ENV{FREERTOS_KERNEL_PATH} ${freertos_kernel_SOURCE_DIR})
 endif()
 include(FreeRTOS_Kernel_import.cmake)
 
-set(PRE_LOAD_MODULES "freertos_config;common_api")
+set(PRE_LOAD_MODULES "freertos_config;common_api;dma;spi") # FIXME: module order
 
 foreach(SUBDIR ${PRE_LOAD_MODULES})
     message("Add Module: ${SUBDIR}")
@@ -172,17 +190,23 @@ FOREACH(PIO_FILE ${pios})
     pico_generate_pio_header(${PROJECT_NAME} ${PIO_FILE})
 ENDFOREACH()
 
+
+
 # Link dependencies
 target_link_libraries(${PROJECT_NAME} PRIVATE
+doctest
 pico_stdlib
 hardware_pio
 FreeRTOS-Kernel
 FreeRTOS-Kernel-Heap4 # FreeRTOS kernel and dynamic heap
-GPIB
-# SPIFlash
 freertos_config
 freertos_plus_fat
 freertos_plus_fat_rpi_pico_port
+common_api
+GPIB
+DMA
+SPI
+Flash
 )
 
 # Link Pico W only dependencies
@@ -210,8 +234,8 @@ if(PICO_BOARD STREQUAL "pico_w")
     )
 endif(PICO_BOARD STREQUAL "pico_w")
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/bootloader)
-bootloader_attach(${PROJECT_NAME})
+# add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/bootloader)
+# bootloader_attach(${PROJECT_NAME})
 pico_add_extra_outputs(${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include ${mongoose_SOURCE_DIR}) # TODO: Move mongoose into library
