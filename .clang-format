@@ -1,31 +1,28 @@
----
-    BasedOnStyle: LLVM
-    UseTab: Never
-    IndentWidth: 4
-    TabWidth: 4
-    IndentCaseLabels: true
-    IndentAccessModifiers: false
-    AccessModifierOffset: '-4'
-    IndentPPDirectives: BeforeHash
-    NamespaceIndentation: Inner
-    BreakBeforeBraces: Attach
-    AllowShortIfStatementsOnASingleLine: 'Never'
-    ColumnLimit: 0
-    AlwaysBreakAfterReturnType: None
-    AlignTrailingComments:
-      Kind: Always
-      OverEmptyLines: 2
-    AllowAllParametersOfDeclarationOnNextLine: 'false'
-    BreakTemplateDeclarations: 'Yes'
-    PackConstructorInitializersStyle: 'CurrentLine'
-    IncludeBlocks: Regroup #Preserve
-    IncludeCategories:
-      - Regex:           '<[^.]+>$'
-        Priority:        1
-      - Regex:           '^<.*\.h(pp)?>$'
-        Priority:        2
-      - Regex:           '^\".*\"$'
-        Priority:        3
-    BreakBeforeBinaryOperators: All
-    BreakBeforeTernaryOperators: 'true'
-...
+BasedOnStyle: LLVM
+UseTab: Never
+IndentWidth: 4
+TabWidth: 4
+IndentCaseLabels: true
+IndentAccessModifiers: false
+AccessModifierOffset: '-4'
+NamespaceIndentation: Inner
+BreakBeforeBraces: Attach
+AllowShortIfStatementsOnASingleLine: 'Never'
+ColumnLimit: 0
+AlwaysBreakAfterReturnType: None
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 2
+AllowAllParametersOfDeclarationOnNextLine: 'false'
+BreakTemplateDeclarations: 'Yes'
+PackConstructorInitializersStyle: 'CurrentLine'
+IncludeBlocks: Regroup #Preserve
+IncludeCategories:
+- Regex: '<[^.]+>$'
+  Priority: 1
+- Regex: '^<.*\.h(pp)?>$'
+  Priority: 2
+- Regex: '^\".*\"$'
+  Priority: 3
+BreakBeforeBinaryOperators: All
+BreakBeforeTernaryOperators: 'true'
