@@ -4,14 +4,15 @@
 <!-- KEYWORDS: Controller, Raspberry Pi Pico W, Embedded, Firmware -->
 <!-- LANGUAGES: C, C++, Python -->
 <!-- TECHNOLOGY: Mongoose Embedded Web Server, RESTful API -->
-<!-- STATUS: Work In Progress -->
 
+<!-- LOGO -->
 ![PMPi-Firmware-Logo](<images/PMPi Firmware.png>)
 
 [About](#about) - [Usage](#usage) - [Related](#related) - [License](#license)
 
 ## Status
 
+<!-- STATUS -->
 **`Work In progress`**
 > *Current main focus has been with the bootloader - May 2024*
 
